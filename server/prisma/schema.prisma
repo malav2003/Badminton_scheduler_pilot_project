@@ -1,0 +1,86 @@
+// Prisma schema for Badminton Scheduler
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  username     String   @unique
+  passwordHash String
+  rating       Float    @default(1200)
+  rank         Int?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  matchesAsP1  Match[]  @relation("p1")
+  matchesAsP2  Match[]  @relation("p2")
+  matchesAsP3  Match[]  @relation("p3")
+  matchesAsP4  Match[]  @relation("p4")
+  waitingEntries WaitingQueueEntry[]
+  ratingHistory  RatingHistory[]
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  createdAt     DateTime @default(now())
+  startTime     DateTime
+  endTime       DateTime
+  courts        Int
+  isActive      Boolean  @default(true)
+  matches       Match[]
+  waitingQueues WaitingQueueEntry[]
+}
+
+model Match {
+  id         String   @id @default(cuid())
+  sessionId  String
+  court      Int
+  status     MatchStatus @default(SCHEDULED)
+  startedAt  DateTime?
+  endedAt    DateTime?
+  p1Id       String
+  p2Id       String
+  p3Id       String
+  p4Id       String
+  p1         User     @relation("p1", fields: [p1Id], references: [id])
+  p2         User     @relation("p2", fields: [p2Id], references: [id])
+  p3         User     @relation("p3", fields: [p3Id], references: [id])
+  p4         User     @relation("p4", fields: [p4Id], references: [id])
+  winnerTeam Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  session    Session  @relation(fields: [sessionId], references: [id])
+}
+
+enum MatchStatus {
+  SCHEDULED
+  ONGOING
+  FINISHED
+}
+
+model WaitingQueueEntry {
+  id         String   @id @default(cuid())
+  sessionId  String
+  userId     String
+  position   Int
+  joinedAt   DateTime @default(now())
+  session    Session  @relation(fields: [sessionId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
+  @@unique([sessionId, userId])
+}
+
+model RatingHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  change    Float
+  rating    Float
+  matchId   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
